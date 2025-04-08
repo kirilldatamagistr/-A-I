@@ -1,1 +1,18 @@
+import numpy as np
 
+matrixA = np.array([[1, 2, 1], [-2, 1, 1]])
+matrixB = np.array([[3, 1], [-1, 0], [2, 4]])
+matrixC = np.array([[-2, 2], [1, -1], [1, 2]])
+
+matrixA_t = matrixA.transpose()
+
+print('Ответ: А + 2 * В')
+print(matrixA_t + 2 * matrixB)
+print('Ответ: В + 2 * С')
+print(matrixB + 2 * matrixC)
+
+#Задание 2
+
+matrix = np.fromfunction(lambda i, j : np.int32(i % 2 == j % 2),(8,8))
+print("Ответ:")
+print(matrix)
