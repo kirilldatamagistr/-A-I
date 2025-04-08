@@ -1,1 +1,219 @@
+#------------------------------------------   Лабораторная работа по теме “Язык PL/pgSQL”   ----------------------------------------------------------
+                                                        Выполнил: Гусев К.А.
 
+Создайте таблицу students с колонками:
+● id (SERIAL) - идентификатор студента (PRIMARY KEY)
+● name (TEXT) - имя студента
+● total_score (INTEGER) - общий балл студента
+#-----------------------------------------------------------------------------------------------
+CREATE DATABASE lab_work;
+CREATE SCHEMA lab_work;
+
+CREATE TABLE students (id SERIAL PRIMARY KEY,name TEXT,total_score INTEGER);
+
+INSERT INTO students (name, total_score) VALUES
+('Иванов Иван', 85),
+('Петрова Анна', 92),
+('Сидоров Павел', 78),
+('Смирнова Екатерина', 67),
+('Козлов Михаил', 95),
+('Соколова Александра', 88),
+('Григорьев Дмитрий', 76),
+('Морозова Ольга', 91),
+('Николаев Игорь', 82),
+('Белова Елена', 79),
+('Васильев Артем', 70),
+('Кузнецова Мария', 94),
+('Орлов Никита', 87),
+('Тимофеева Анастасия', 83),
+('Федоров Андрей', 89);
+#-----------------------------------------------------------------------------------------------
+Создайте таблицу activity_scores сколонками:
+● student_id (INTEGER) ссылка на студента в таблице students
+● activity_type (TEXT) - вид деятельности (например, "Homework", "Exam" и т.д.)
+● score (INTEGER) – балл за деятельность
+#-----------------------------------------------------------------------------------------------
+CREATE TABLE activity_scores (
+id SERIAL PRIMARY KEY,
+student_id INTEGER REFERENCES students(id),
+activity_type TEXT,
+score INTEGER
+);
+
+INSERT INTO activity_scores (student_id, activity_type, score) VALUES
+(1, 'Homework', 90),
+(1, 'Exam', 78),
+(2, 'Homework', 95),
+(2, 'Exam', 88),
+(3, 'Homework', 70),
+(3, 'Exam', 82),
+(4, 'Homework', 60),
+(4, 'Exam', 72),
+(5, 'Homework', 87),
+(5, 'Exam', 95),
+(6, 'Homework', 75),
+(6, 'Exam', 68),
+(7, 'Homework', 92),
+(7, 'Exam', 89),
+(8, 'Homework', 80),
+(8, 'Exam', 76),
+(9, 'Homework', 65),
+(9, 'Exam', 72),
+(10, 'Homework', 88),
+(10, 'Exam', 90),
+(11, 'Homework', 78),
+(11, 'Exam', 84),
+(12, 'Homework', 92),
+(12, 'Exam', 91),
+(13, 'Homework', 85),
+(13, 'Exam', 89),
+(14, 'Homework', 70),
+(14, 'Exam', 75),
+(15, 'Homework', 95),
+(15, 'Exam', 92);
+
+#-----------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
+
+Задача 1: Учет баллов студентов.
+Напишем функцию update_total_score(student_idINTEGER): 
+● Эта функция должна пересчитывать общий балл студента на основе баллов за разные виды деятельности в таблице activity_scores. 
+● Используйте цикл для итерации по всем записям в activity_scores для заданного student_id. 
+● Обновитеполе total_score для соответствующего студента в таблице students суммой всех баллов заразные виды деятельности.
+#-----------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION calculate_scholarship(student_id INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+    student_total_score INTEGER;
+    scholarship_amount INTEGER;
+BEGIN
+    SELECT total_score INTO student_total_score FROM students WHERE id = student_id;
+    IF student_total_score >= 90 THEN
+    scholarship_amount := 1000;
+    ELSIF student_total_score >= 80 THEN
+    scholarship_amount := 500;
+    ELSE
+    scholarship_amount := 0;
+    END IF;
+
+    RETURN scholarship_amount;
+END;
+$$ LANGUAGE plpgsql;
+#-----------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION update_scholarship()
+RETURNS TRIGGER AS $$
+BEGIN
+    SELECT calculate_scholarship(NEW.student_id) INTO NEW.score;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+Напишем триггер, который будет автоматически вызывать функцию update_total_score при вставке новых записей в таблицу activity_scores.
+CREATE TRIGGER update_scholarship_trigger
+AFTER UPDATE ON activity_scores
+FOR EACH ROW
+EXECUTE FUNCTION update_scholarship();
+
+
+Предоставем примеры использования:
+
+● Вставьте несколько студентов в таблицу students.
+● Вставьте записи о баллах за разные виды деятельности в таблицу activity_scores.
+● После вставки баллов, убедитесь,что общий балл каждого студента автоматически обновлен в таблице students.
+SELECT
+s.id AS student_id,
+s.name AS student_name,
+s.total_score AS student_total_score,
+CASE
+WHEN s.total_score >= 90 THEN 1000
+WHEN s.total_score >= 80 THEN 500
+ELSE 0
+END AS student_scholarship
+FROM
+students s
+ORDER by
+student_scholarship DESC, s.id;
+
+UPDATE students SET total_score = total_score + 10 WHERE id IN (7, 15);
+
+SELECT
+s.id AS student_id,
+s.name AS student_name,
+s.total_score AS student_total_score,
+CASE
+WHEN s.total_score >= 90 THEN 1000
+WHEN s.total_score >= 80 THEN 500
+ELSE 0
+END AS student_scholarship
+FROM
+students s
+ORDER BY
+student_scholarship DESC, s.id;
+
+#-----------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
+
+Задача 2: Расчет стипендии для студентов.
+Создайте функцию calculate_scholarship, которая будет рассчитывать стипендию для студента. Стипендия зависит от общего балла студента: 
+●Если общий балл больше или равен 90, стипендия равна 1000. 
+● Если общий балл больше или равен 80, но меньше 90, стипендия равна 500.
+● В остальных случаях, стипендия равна 0.
+#-----------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION update_total_score()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE students
+    SET total_score = (
+        SELECT COALESCE(SUM(score), 0)
+        FROM activity_scores
+        WHERE student_id = NEW.student_id
+    )
+    WHERE id = NEW.student_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+#-----------------------------------------------------------------------------------------------
+Создаем триггер update_scholarship_trigger, который будет автоматически вызывать функцию calculate_scholarship при обновлении баллов за деятельность в таблице activity_scores. 
+Протестируйте решение, вставив данные о студентах и их баллах за деятельность. Посмотрите, как автоматически обновляется стипендия каждого студента после добавления баллов. 
+Для сохранения результатов вычислений создайте дополнительную колонку scholarship в таблице students.
+#-----------------------------------------------------------------------------------------------
+CREATE TRIGGER update_total_score_trigger
+AFTER INSERT ON activity_scores
+FOR EACH ROW
+EXECUTE FUNCTION update_total_score();
+
+SELECT * FROM students;
+
+INSERT INTO students (name, total_score) VALUES
+('Давыдов Денис', 76),
+('Романова Юлия', 84),
+('Лебедев Иван', 71),
+('Сорокина Елена', 90),
+('Максимов Павел', 79);
+
+INSERT INTO activity_scores (student_id, activity_type, score) VALUES
+(16, 'Homework', 70),
+(16, 'Exam', 80),
+(17, 'Homework', 85),
+(17, 'Exam', 92),
+(18, 'Homework', 62),
+(18, 'Exam', 74),
+(19, 'Homework', 89),
+(19, 'Exam', 85),
+(20, 'Homework', 78),
+(20, 'Exam', 83);
+
+SELECT * FROM students;
+#-----------------------------------------------------------------------------------------------
+Отображение в IDE :
+1.
+ 
+
+
+
+
+
+2.
