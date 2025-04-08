@@ -208,12 +208,3 @@ INSERT INTO activity_scores (student_id, activity_type, score) VALUES
 
 SELECT * FROM students;
 #-----------------------------------------------------------------------------------------------
-Отображение в IDE :
-1.
- 
-
-
-
-
-
-2.
