@@ -1,1 +1,10 @@
-2
+import webbrowser
+webbrowser.open('https://www.list-org.com/company/113490/report')
+
+a = 267375000
+b = 316074000
+
+if a*1.1 - b < 0.3 or a*1.1 - b > -0.3:
+    print('Ответ: Гипотеза H1 не опровергнута')
+else:
+    print('Ответ: Гипотеза H1 опровергнута')  
