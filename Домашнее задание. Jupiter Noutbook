@@ -1,2 +1,0 @@
-import webbrowser
-webbrowser.open('https://colab.research.google.com/drive/1R6MgJaYQxbIm6ktHfAhT3aeDT-MwyBhi?usp=sharing')
